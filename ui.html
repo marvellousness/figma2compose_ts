@@ -1,17 +1,81 @@
-<h2>Rectangle Creator</h2>
-<p>Count: <input id="count" type="number" value="5"></p>
-<button id="create">Create</button>
-<button id="cancel">Cancel</button>
-<script>
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <style>
+      body {
+        font-family: sans-serif;
+        font-size: 14px;
+        padding: 1em;
+        line-height: 1.4;
+      }
 
-document.getElementById('create').onclick = () => {
-  const textbox = document.getElementById('count');
-  const count = parseInt(textbox.value, 10);
-  parent.postMessage({ pluginMessage: { type: 'create-shapes', count } }, '*')
-}
+      .node {
+        margin-left: 1em;
+        border-left: 1px dashed #ccc;
+        padding-left: 0.5em;
+      }
 
-document.getElementById('cancel').onclick = () => {
-  parent.postMessage({ pluginMessage: { type: 'cancel' } }, '*')
-}
+      .node-title {
+        font-weight: bold;
+        color: #4a4a4a;
+      }
 
-</script>
+      .attribute {
+        color: #444;
+        margin-left: 1em;
+      }
+
+      .preview {
+        margin: 1em 0;
+        border: 1px solid #ccc;
+        width: 100%;
+        max-width: 200px;
+        height: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="tree">Select a node in Figma...</div>
+
+    <script>
+      function renderNode(node) {
+        let html = `
+          <div class="node">
+            <div class="node-title">${node.type} - ${node.name}</div>
+            <img class="preview" src="${node.preview}" alt="Preview of ${node.name}" />
+            <div class="attribute">ID: ${node.id}</div>
+            <div class="attribute">Visible: ${node.visible}</div>
+            <div class="attribute">Size: ${node.width} × ${node.height}</div>
+            <div class="attribute">Position: (${node.x}, ${node.y})</div>
+            <div class="attribute">Rotation: ${node.rotation}</div>
+            <div class="attribute">Opacity: ${node.opacity}</div>
+        `;
+
+        if (node.children && node.children.length > 0) {
+          html += `<div class="attribute">Children:</div>`;
+          node.children.forEach((child) => {
+            html += renderNode(child);
+          });
+        }
+
+        html += `</div>`;
+        return html;
+      }
+
+      window.onmessage = (event) => {
+        const msg = event.data.pluginMessage;
+        const tree = document.getElementById("tree");
+
+        if (msg.type === "NO_SELECTION") {
+          tree.innerHTML = "<p>Please select a node.</p>";
+        }
+
+        if (msg.type === "NODE_TREE") {
+          const html = renderNode(msg.data);
+          tree.innerHTML = html;
+        }
+      };
+    </script>
+  </body>
+</html>

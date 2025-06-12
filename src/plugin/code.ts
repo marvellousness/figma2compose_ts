@@ -1,4 +1,4 @@
-figma.showUI(__html__, { width: 400, height: 600 });
+figma.showUI(__html__, { width: 400, height: 1000 });
 
 async function serializeNode(node: SceneNode): Promise<any> {
   const previewBytes = await node.exportAsync({ format: "PNG", constraint: { type: "SCALE", value: 1 } });

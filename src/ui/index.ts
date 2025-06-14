@@ -1,6 +1,6 @@
-  import FrameNodeType from "@figma/plugin-typings";
-  import NodeType from "@figma/plugin-typings";
-
+import FrameNodeType from "@figma/plugin-typings";
+import NodeType from "@figma/plugin-typings";
+import { mapTextNodeToMaterialText } from "./transform_text_node";
 
 interface Node {
   type: string;
@@ -47,17 +47,26 @@ function renderNode(node: Node): string {
 }
 
 window.onmessage = (event: MessageEvent) => {
-  const msg = event.data.pluginMessage as PluginMessage;
+  const msg = event.data.pluginMessage as PluginMessage;  
   const tree = document.getElementById("tree");
 
-  if (!tree) return;
+  if (!tree) {
+    console.log("Tree element not found");
+    return;
+  }
 
   if (msg.type === "NO_SELECTION") {
+    console.log("No selection message received");
     tree.innerHTML = "<p>Please select a node.</p>";
   }
 
-  if (msg.type === "NODE_TREE" && msg.data) {
+  if (msg.type === "NODE_TREE" && msg.data) {    
     const html = renderNode(msg.data);
+    tree.innerHTML = html;
+  }
+  
+  if (msg.data?.type === "TEXT") {    
+    const html = mapTextNodeToMaterialText(msg.data as unknown as TextNode);
     tree.innerHTML = html;
   }
 };

@@ -20,56 +20,98 @@ async function serializeNode(node: SceneNode): Promise<any> {
     children: [],
   };
 
-  // Add text-specific properties if the node is a text node
-  if (node.type === "TEXT") {
-    console.log("Processing text node");
-    const textNode = node as TextNode;
-    serialized.characters = textNode.characters;
-    serialized.fontSize = textNode.fontSize;
-    
-    // Handle fontName which is a FontName object
-    if (textNode.fontName && typeof textNode.fontName === 'object') {
-      const fontName = textNode.fontName as FontName;
-      serialized.fontName = {
-        family: fontName.family,
-        style: fontName.style
-      };
+  // Handle specific node types
+  switch (node.type) {
+    case "TEXT": {
+      const textNode = node as TextNode;
+      serialized.characters = textNode.characters;
+      serialized.fontSize = textNode.fontSize;
+      if (textNode.fontName && typeof textNode.fontName === 'object') {
+        const fontName = textNode.fontName as FontName;
+        serialized.fontName = {
+          family: fontName.family,
+          style: fontName.style
+        };
+      }
+      serialized.textStyleId = textNode.textStyleId ? String(textNode.textStyleId) : null;
+      serialized.fontWeight = typeof textNode.fontWeight === 'number' ? textNode.fontWeight : null;
+      serialized.lineHeight = textNode.lineHeight;
+      serialized.letterSpacing = textNode.letterSpacing;
+      serialized.textDecoration = textNode.textDecoration ? String(textNode.textDecoration) : null;
+      serialized.textAlignHorizontal = textNode.textAlignHorizontal ? String(textNode.textAlignHorizontal) : null;
+      serialized.fills = serializeFills(textNode.fills);
+      break;
     }
-
-    // Handle textStyleId which might be a symbol
-    serialized.textStyleId = textNode.textStyleId ? String(textNode.textStyleId) : null;
-    
-    // Handle fontWeight which might be a symbol
-    serialized.fontWeight = typeof textNode.fontWeight === 'number' ? textNode.fontWeight : null;
-    
-    serialized.lineHeight = textNode.lineHeight;
-    serialized.letterSpacing = textNode.letterSpacing;
-    
-    // Handle textDecoration which might be a symbol
-    serialized.textDecoration = textNode.textDecoration ? String(textNode.textDecoration) : null;
-    
-    // Handle textAlignHorizontal which might be a symbol
-    serialized.textAlignHorizontal = textNode.textAlignHorizontal ? String(textNode.textAlignHorizontal) : null;
-    
-    // Handle fills which is an array of Paint objects
-    if (textNode.fills && Array.isArray(textNode.fills)) {
-      serialized.fills = textNode.fills.map(fill => {
-        if (fill.type === 'SOLID') {
-          return {
-            type: 'SOLID',
-            color: {
-              r: fill.color.r,
-              g: fill.color.g,
-              b: fill.color.b
-            },
-            opacity: fill.opacity
+    case "FRAME": {
+      const frameNode = node as FrameNode;
+      serialized.layoutMode = frameNode.layoutMode;
+      serialized.primaryAxisSizingMode = frameNode.primaryAxisSizingMode;
+      serialized.counterAxisSizingMode = frameNode.counterAxisSizingMode;
+      serialized.paddingLeft = frameNode.paddingLeft;
+      serialized.paddingRight = frameNode.paddingRight;
+      serialized.paddingTop = frameNode.paddingTop;
+      serialized.paddingBottom = frameNode.paddingBottom;
+      serialized.itemSpacing = frameNode.itemSpacing;
+      serialized.layoutWrap = frameNode.layoutWrap;
+      serialized.layoutAlign = frameNode.layoutAlign;
+      serialized.fills = serializeFills(frameNode.fills);
+      break;
+    }
+    case "RECTANGLE": {
+      const rectNode = node as RectangleNode;
+      serialized.cornerRadius = rectNode.cornerRadius;
+      serialized.fills = serializeFills(rectNode.fills);
+      break;
+    }
+    case "INSTANCE": {
+      const instanceNode = node as InstanceNode;
+      serialized.componentId = (instanceNode as any).componentId;
+      try {
+        const mainComponent = await instanceNode.getMainComponentAsync();
+        if (mainComponent) {
+          serialized.mainComponent = {
+            id: mainComponent.id,
+            name: mainComponent.name
           };
         }
-        return null;
-      }).filter(Boolean);
+      } catch (error) {
+        console.warn('Error getting main component:', error);
+      }
+      break;
     }
-
-    console.log("Text node serialized:", serialized);
+    case "ELLIPSE": {
+      const ellipseNode = node as EllipseNode;
+      serialized.fills = serializeFills(ellipseNode.fills);
+      break;
+    }
+    case "VECTOR": {
+      const vectorNode = node as VectorNode;
+      serialized.fills = serializeFills(vectorNode.fills);
+      if (vectorNode.strokes) {
+        serialized.strokes = vectorNode.strokes.map(stroke => {
+          if (stroke.type === 'SOLID') {
+            return {
+              type: stroke.type,
+              color: stroke.color,
+              opacity: stroke.opacity,
+              weight: (stroke as any).weight
+            };
+          }
+          return null;
+        }).filter(Boolean);
+      }
+      break;
+    }
+    case "GROUP": {
+      const groupNode = node as GroupNode;
+      serialized.layoutMode = (groupNode as any).layoutMode;
+      break;
+    }
+    case "BOOLEAN_OPERATION": {
+      const boolNode = node as BooleanOperationNode;
+      serialized.booleanOperation = boolNode.booleanOperation;
+      break;
+    }
   }
 
   if ("children" in node && node.children.length > 0) {
@@ -78,6 +120,26 @@ async function serializeNode(node: SceneNode): Promise<any> {
   }
 
   return serialized;
+}
+
+function serializeFills(fills: ReadonlyArray<Paint> | symbol): any[] | null {
+  if (!fills || fills === figma.mixed || !Array.isArray(fills)) {
+    return null;
+  }
+  return fills.map(fill => {
+    if (fill.type === 'SOLID') {
+      return {
+        type: 'SOLID',
+        color: {
+          r: fill.color.r,
+          g: fill.color.g,
+          b: fill.color.b
+        },
+        opacity: fill.opacity
+      };
+    }
+    return null;
+  }).filter(Boolean);
 }
 
 figma.on("selectionchange", async () => {

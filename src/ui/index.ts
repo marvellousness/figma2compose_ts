@@ -1,6 +1,6 @@
 // Remove import of node types, use global types
 // import { SceneNode, TextNode, FrameNode, RectangleNode, InstanceNode, EllipseNode, VectorNode, GroupNode, BooleanOperationNode, ComponentNode } from "@figma/plugin-typings";
-import { generateComposeRectangle } from "./transform_rectangle_node";
+import { mapRectangleToBoxCompose } from "./transform_rectangle_node";
 import { mapTextNodeToMaterialText } from "./transform_text_node";
 
 // PluginMessage interface updated to use SceneNode
@@ -96,7 +96,7 @@ window.onmessage = async (event: MessageEvent) => {
         tree.innerHTML = html;
       } if(isRectangleNode(node)) {
         console.log("Processing rectangle node");
-        const html = generateComposeRectangle(node);
+        const html = mapRectangleToBoxCompose(node);
         tree.innerHTML = html;
       } else {
         console.log("Processing other node type:", node.type);

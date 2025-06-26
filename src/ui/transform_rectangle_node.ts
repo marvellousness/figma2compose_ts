@@ -8,7 +8,7 @@ function safeStringify(obj: any): string {
   );
 }
 
-export function generateComposeRectangle(rect: RectangleNode, indent = 0): string {
+export function mapRectangleToBoxCompose(rect: RectangleNode, indent = 0): string {
   const space = "  ".repeat(indent);
   const inner = "  ".repeat(indent + 1);
 
